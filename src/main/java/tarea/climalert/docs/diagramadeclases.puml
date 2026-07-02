@@ -94,6 +94,7 @@ package services {
     -emailService: EmailService
     -umbralTemperatura: double
     -umbralHumedad: double
+    -alertaMonitor: AlertaMonitor
     +ProcesadorAlertasImpl(repositorioClima: RepositorioClima, emailService: EmailService)
     +analizarCondicionesClimaticas(): void
   }
@@ -115,5 +116,7 @@ EmailService "1" <-- "1" ProcesadorAlertasImpl : usa
 ServicioClima <|.. ServicioClimaImpl
 
 ProcesadorAlertas <|.. ProcesadorAlertasImpl
+
+ProcesadorAlertasImpl "1" --> "1" AlertaMonitor : usa
 
 @enduml
