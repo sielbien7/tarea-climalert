@@ -1,0 +1,119 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+package models {
+  class Condition {
+    -text: String
+    +getText(): String
+  }
+
+  class WeatherRecord {
+    -timestamp: LocalDateTime
+    -temperature: double
+    -humidity: double
+    -feelslike: double
+    -windSpeed: double
+    -condition: String
+    +WeatherRecord(temperature: double, humidity: double, feelslike: double, windSpeed: double, condition: String)
+  }
+
+  class CurrentWeather {
+    -tempC: double
+    -humidity: double
+    -feelslikeC: double
+    -windKph: double
+    -condition: Condition
+  }
+
+  class WeatherApiResponse {
+    -current: CurrentWeather
+  }
+
+  class AlertaMonitor {
+    -ultimoProcesado: WeatherRecord
+    -umbralTemperatura: double
+    -umbralHumedad: double
+    +AlertaMonitor(umbralTemperatura: double, umbralHumedad: double)
+    +debeAlertar(nuevo: WeatherRecord): boolean
+    -esNuevo(nuevo: WeatherRecord): boolean
+    +esCritico(registro: WeatherRecord): boolean
+    +registrarAlerta(registro: WeatherRecord)
+  }
+}
+
+package repositories {
+  interface RepositorioClima {
+    +save(clima: WeatherRecord): void
+    +findUltimoRegistro(): WeatherRecord
+  }
+
+  class RepositorioClimaMemoria {
+    -historialClima: List<WeatherRecord>
+    +save(record: WeatherRecord): void
+    +findUltimoRegistro(): WeatherRecord
+  }
+}
+
+package services {
+  interface EmailService {
+    +enviarAlerta(registroClima: WeatherRecord): void
+  }
+
+  class MockEmailServiceImpl {
+    +enviarAlerta(registroClima: WeatherRecord): void
+  }
+
+  class GmailEmailServiceImpl {
+    -mailSender: JavaMailSender
+    -fromEmail: String
+    -toEmail: String
+    +GmailEmailServiceImpl(mailSender: JavaMailSender, fromEmail: String, toEmail: String)
+    +enviarAlerta(registroClima: WeatherRecord): void
+  }
+
+  interface ServicioClima {
+    +obtenerClimaActual(): void
+  }
+
+  class ServicioClimaImpl {
+    -repositorioClima: RepositorioClima
+    -restTemplate: RestTemplate
+    -apiUrl: String
+    -apiKey: String
+    -location: String
+    +ServicioClimaImpl(repositorioClima: RepositorioClima)
+    +obtenerClimaActual(): void
+  }
+
+  interface ProcesadorAlertas {
+    +analizarCondicionesClimaticas(): void
+  }
+
+  class ProcesadorAlertasImpl {
+    -repositorioClima: RepositorioClima
+    -emailService: EmailService
+    -umbralTemperatura: double
+    -umbralHumedad: double
+    +ProcesadorAlertasImpl(repositorioClima: RepositorioClima, emailService: EmailService)
+    +analizarCondicionesClimaticas(): void
+  }
+}
+
+' Relaciones
+WeatherApiResponse "1" --> "1" CurrentWeather : tiene
+CurrentWeather "1" --> "1" Condition : tiene
+AlertaMonitor "1" --> "0..1" WeatherRecord : monitorea
+
+RepositorioClima <|.. RepositorioClimaMemoria
+RepositorioClima "1" <-- "1" ServicioClimaImpl : usa
+RepositorioClima "1" <-- "1" ProcesadorAlertasImpl : usa
+
+EmailService <|.. MockEmailServiceImpl
+EmailService <|.. GmailEmailServiceImpl
+EmailService "1" <-- "1" ProcesadorAlertasImpl : usa
+
+ServicioClima <|.. ServicioClimaImpl
+
+ProcesadorAlertas <|.. ProcesadorAlertasImpl
+
+@enduml
